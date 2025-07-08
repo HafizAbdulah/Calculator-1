@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Smart Calculator</title>
+  <style>
+    body {
+      background: #f0f0f0;
+      font-family: sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .calculator {
+      background: #222;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+    .display {
+      background: #000;
+      color: #0f0;
+      font-size: 24px;
+      padding: 10px;
+      text-align: right;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      min-width: 240px;
+    }
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 60px);
+      gap: 10px;
+    }
+    button {
+      padding: 15px;
+      font-size: 18px;
+      border: none;
+      border-radius: 5px;
+      background: #444;
+      color: white;
+      cursor: pointer;
+    }
+    button.operator {
+      background: orange;
+    }
+  </style>
+</head>
+<body>
+  <div class="calculator">
+    <div class="display" id="display">0</div>
+    <div class="buttons">
+      <button onclick="appendNumber('7')">7</button>
+      <button onclick="appendNumber('8')">8</button>
+      <button onclick="appendNumber('9')">9</button>
+      <button class="operator" onclick="chooseOperation('divide')">÷</button>
+
+      <button onclick="appendNumber('4')">4</button>
+      <button onclick="appendNumber('5')">5</button>
+      <button onclick="appendNumber('6')">6</button>
+      <button class="operator" onclick="chooseOperation('multiply')">×</button>
+
+      <button onclick="appendNumber('1')">1</button>
+      <button onclick="appendNumber('2')">2</button>
+      <button onclick="appendNumber('3')">3</button>
+      <button class="operator" onclick="chooseOperation('sub')">−</button>
+
+      <button onclick="appendNumber('0')">0</button>
+      <button onclick="appendNumber('.')">.</button>
+      <button onclick="compute()">=</button>
+      <button class="operator" onclick="chooseOperation('add')">+</button>
+
+      <button onclick="clearDisplay()" style="grid-column: span 4; background: red;">C</button>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:3000';
+
+    let firstOperand = '';
+    let secondOperand = '';
+    let operation = '';
+    let waitingForSecond = false;
+
+    function updateDisplay(value) {
+      document.getElementById("display").innerText = value;
+    }
+
+    function appendNumber(num) {
+      if (num === '.' && (waitingForSecond ? secondOperand.includes('.') : firstOperand.includes('.'))) return;
+
+      if (waitingForSecond) {
+        secondOperand += num;
+        updateDisplay(secondOperand);
+      } else {
+        firstOperand += num;
+        updateDisplay(firstOperand);
+      }
+    }
+
+    function chooseOperation(op) {
+      if (firstOperand === '') return;
+
+      switch (op) {
+        case '×':
+          operation = 'multiply'; break;
+        case '−':
+          operation = 'sub'; break;
+        case '÷':
+          operation = 'divide'; break;
+        case '+':
+          operation = 'add'; break;
+        default:
+          operation = op;
+      }
+
+      waitingForSecond = true;
+      updateDisplay("0");
+    }
+
+    function clearDisplay() {
+      firstOperand = '';
+      secondOperand = '';
+      operation = '';
+      waitingForSecond = false;
+      updateDisplay("0");
+    }
+
+    async function compute() {
+      if (firstOperand === '' || secondOperand === '' || operation === '') return;
+
+      try {
+        const res = await fetch(`${API_BASE}/${operation}?a=${firstOperand}&b=${secondOperand}`);
+        if (!res.ok) throw new Error('API error');
+        const data = await res.json();
+        updateDisplay(data.result);
+
+        firstOperand = '' + data.result;
+        secondOperand = '';
+        operation = '';
+        waitingForSecond = false;
+      } catch (err) {
+        updateDisplay('Error');
+      }
+    }
+  </script>
+</body>
+</html>
